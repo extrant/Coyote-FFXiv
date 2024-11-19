@@ -106,13 +106,13 @@ public class MainWindow : Window, IDisposable
         }
         ImGui.SameLine();
 
-        if (ImGui.Button("Github", new System.Numerics.Vector2(buttonWidth, 0)))
+        if (ImGui.Button("QQ交流群", new System.Numerics.Vector2(buttonWidth, 0)))
         {
-            OpenWebPage("https://github.com/extrant");
+            OpenWebPage("https://qm.qq.com/q/Dvft7wxPWg");
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("点击前往Github。");
+            ImGui.SetTooltip("加入QQ交流群");
         }
         ImGui.SameLine();
 
