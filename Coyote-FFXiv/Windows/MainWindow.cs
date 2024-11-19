@@ -11,9 +11,10 @@ using System.Text.Json;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Text;
-using static Coyote.ChatWatcher;
 using System.Linq;
 using System.Diagnostics;
+using Coyote.Gui;
+using Coyote.Utils;
 
 public class MainWindow : Window, IDisposable
 {
@@ -25,8 +26,11 @@ public class MainWindow : Window, IDisposable
     private string fireResponse;
     private ApiResponse parsedResponse; // 用于存储解析后的 API 数据
     private Configuration Configuration;
-    
-
+    private ChatTriggerUI chatTriggerUI;
+    private HealthWatcher healthWatcher;
+    private HealthTriggerUI healthTriggerUI;
+    private BuffIconSelector buffIconSelector;
+    private BuffTriggerUI buffTriggerUI;
     private int selectedTab = 0; // 当前选中的选项卡
 
     public MainWindow(Plugin plugin, string goatImagePath)
@@ -41,6 +45,11 @@ public class MainWindow : Window, IDisposable
         GoatImagePath = goatImagePath;
         Plugin = plugin;
         Configuration = plugin.Configuration;
+        chatTriggerUI = new ChatTriggerUI(plugin.Configuration, plugin);
+        healthWatcher = new HealthWatcher(plugin);
+        healthTriggerUI = new HealthTriggerUI(plugin.Configuration, plugin, healthWatcher);
+        buffIconSelector = new BuffIconSelector(plugin.Configuration, plugin);
+        buffTriggerUI = new BuffTriggerUI(plugin.Configuration, plugin);
 
         if (Plugin.ClientState.LocalPlayer != null)
         {
@@ -50,14 +59,6 @@ public class MainWindow : Window, IDisposable
         fireResponse = "还没有返回消息哦";
 
     }
-
-
-
-
-
-
-    private bool isChatTriggerRunning = false; // 用于控制逻辑运行的开关
-    private bool isHealthTriggerRunning = false; // 用于控制逻辑运行的开关
 
 
     public static void OpenWebPage(string url)
@@ -190,9 +191,15 @@ public class MainWindow : Window, IDisposable
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("还在做哈"))
+            if (ImGui.BeginTabItem("状态触发"))
             {
-                ImGui.Text("这是另一个占位触发。");
+                buffTriggerUI.Draw();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem("状态大全"))
+            {
+                BuffIconSelector();
                 ImGui.EndTabItem();
             }
 
@@ -200,413 +207,21 @@ public class MainWindow : Window, IDisposable
         }
     }
 
-
-    private ChatTriggerRule newRule = new ChatTriggerRule(); // 用于输入新规则
-                                                             //聊天触发绘制相关
-    private int selectedRuleIndex = -1; // 当前选中的规则索引
-
     private void DrawChatTrigger()
     {
-        ImGui.BeginGroup(); // 开始一个组，用于按钮布局
-        if (ImGui.Checkbox("总触发开关##ChatChange", ref isChatTriggerRunning))
-        {
-            if (isChatTriggerRunning)
-            {
-                chatWatcher = new ChatWatcher(Configuration);
-            }
-            else
-            {
-                chatWatcher.Dispose();
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button("删除选中规则##DeleteSelectedRule"))
-        {
-            if (selectedRuleIndex >= 0 && selectedRuleIndex < Configuration.chatTriggerRules.Count)
-            {
-                Configuration.chatTriggerRules.RemoveAt(selectedRuleIndex);
-                ChatTriggerRuleManager.SaveRules(Configuration.chatTriggerRules);
-                selectedRuleIndex = -1; 
-                Plugin.Chat.Print("选中的规则已删除");
-            }
-            else
-            {
-                Plugin.Chat.Print("未选择规则，无法删除");
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button("新增规则##AddEmptyRule"))
-        {
-            var newRule = new ChatTriggerRule
-            {
-                ChatType = XivChatType.Say,
-                SenderName = string.Empty,
-                Keyword = string.Empty,
-                MatchEntireMessage = false,
-                CheckSender = false,
-                IsEnabled = true // 默认启用规则
-            };
-            Configuration.chatTriggerRules.Add(newRule);
-            selectedRuleIndex = Configuration.chatTriggerRules.Count - 1; // 选中新添加的规则
-            ChatTriggerRuleManager.SaveRules(Configuration.chatTriggerRules);
-            Plugin.Chat.Print("新规则已添加");
-        }
-        ImGui.EndGroup();
-
-        ImGui.Separator();
-
-        // 左侧规则列表
-        ImGui.BeginChild("RuleList", new Vector2(200, 0), true);
-        for (int i = 0; i < Configuration.chatTriggerRules.Count; i++)
-        {
-            var rule = Configuration.chatTriggerRules[i];
-            if (rule.IsEnabled)
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1)); // 绿色文本
-            }
-
-            if (ImGui.Selectable($"规则 {i + 1}: {rule.Keyword}", selectedRuleIndex == i))
-            {
-                selectedRuleIndex = i;
-            }
-
-            if (rule.IsEnabled)
-            {
-                ImGui.PopStyleColor(); // 恢复默认文本颜色
-            }
-        }
-        ImGui.EndChild();
-
-        ImGui.SameLine();
-
-        // 右侧规则详细信息
-        ImGui.BeginChild("RuleDetails", new Vector2(0, 0), true);
-
-        if (selectedRuleIndex >= 0 && selectedRuleIndex < Configuration.chatTriggerRules.Count)
-        {
-            var selectedRule = Configuration.chatTriggerRules[selectedRuleIndex];
-
-            ImGui.Text($"编辑规则 {selectedRuleIndex + 1}");
-            ImGui.Separator();
-
-
-            // 启用/禁用规则
-            bool isEnabled = selectedRule.IsEnabled;
-            if (ImGui.Checkbox("启用规则##EnableRule", ref isEnabled))
-            {
-                selectedRule.IsEnabled = isEnabled;
-                ChatTriggerRuleManager.SaveRules(Configuration.chatTriggerRules);
-            }
-
-
-            // 聊天类型
-            ImGui.Text("聊天类型");
-            if (ImGui.BeginCombo("##EditChatType", selectedRule.ChatType.ToString()))
-            {
-                foreach (XivChatType chatType in Enum.GetValues(typeof(XivChatType)))
-                {
-                    bool isSelected = selectedRule.ChatType == chatType;
-                    if (ImGui.Selectable(chatType.ToString(), isSelected))
-                    {
-                        selectedRule.ChatType = chatType;
-                    }
-                    if (isSelected)
-                    {
-                        ImGui.SetItemDefaultFocus();
-                    }
-                }
-                ImGui.EndCombo();
-            }
-
-            // 检查发送者
-            bool checkSender = selectedRule.CheckSender;
-            if (ImGui.Checkbox("检查发送者##EditCheckSender", ref checkSender))
-            {
-                selectedRule.CheckSender = checkSender;
-            }
-
-            // 发送者输入框（仅在检查发送者时显示）
-            if (selectedRule.CheckSender)
-            {
-                string senderName = selectedRule.SenderName ?? string.Empty;
-                if (ImGui.InputText("发送者##EditSender", ref senderName, 100))
-                {
-                    selectedRule.SenderName = senderName;
-                }
-                ImGui.TextColored(new Vector4(1, 0, 0, 1), "注:技术原因不建议使用，什么时候这个提示没了就说明完全支持了！");
-            }
-
-            // 消息关键词
-            string keyword = selectedRule.Keyword ?? string.Empty;
-            if (ImGui.InputText("关键词##EditKeyword", ref keyword, 100))
-            {
-                selectedRule.Keyword = keyword;
-            }
-            ImGui.TextColored(new Vector4(1, 0, 0, 1),"注:如果关键词什么都不填会导致无条件触发！");
-            selectedRule.Keyword = keyword;
-
-            // 匹配全文
-            bool matchEntireMessage = selectedRule.MatchEntireMessage;
-            if (ImGui.Checkbox("匹配全文##EditMatchEntireMessage", ref matchEntireMessage))
-            {
-                selectedRule.MatchEntireMessage = matchEntireMessage;
-            }
-
-            // 新增触发规则的配置项
-            int fireStrength = selectedRule.FireStrength;
-            if (ImGui.SliderInt("一键开火强度", ref fireStrength, 0, 40))
-            {
-                selectedRule.FireStrength = fireStrength;
-            }
-
-            int fireTime = selectedRule.FireTime;
-            if (ImGui.SliderInt("一键开火时间(ms)", ref fireTime, 0, 30000))
-            {
-                selectedRule.FireTime = fireTime;
-            }
-
-            bool overrideTime = selectedRule.OverrideTime;
-            if (ImGui.Checkbox("多次触发时，重置时间", ref overrideTime))
-            {
-                selectedRule.OverrideTime = overrideTime;
-            }
-
-            string pulseId = selectedRule.PulseId ?? string.Empty;
-            if (ImGui.InputText("波形ID", ref pulseId, 64))
-            {
-                selectedRule.PulseId = pulseId;
-            }
-
-            // 保存更新
-            if (ImGui.Button("保存规则##SaveRule"))
-            {
-                Configuration.chatTriggerRules[selectedRuleIndex] = selectedRule;
-                ChatTriggerRuleManager.SaveRules(Configuration.chatTriggerRules);
-                Plugin.Log.Info($"规则 {selectedRuleIndex + 1} 已更新");
-            }
-        }
-        else
-        {
-            ImGui.Text("请选择一个规则进行编辑");
-        }
-
-        ImGui.EndChild();
-
+        chatTriggerUI.Draw();
     }
 
-    private int selectedHealthRuleIndex = -1; // 当前选中的血量触发规则索引
 
     private void DrawHealthTrigger()
     {
-        ImGui.BeginGroup(); // 顶部按钮组
-
-        if (ImGui.Checkbox("总触发开关##HpChange", ref isHealthTriggerRunning))
-        {
-            if (isHealthTriggerRunning)
-            {
-                Plugin.Framework.Update += this.OnFrameworkUpdateForHpChange;
-            }
-            else
-            {
-                Plugin.Framework.Update -= this.OnFrameworkUpdateForHpChange;
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button("新增规则##AddHealthRule"))
-        {
-            var newRule = new HealthTriggerRule();
-            Configuration.HealthTriggerRules.Add(newRule);
-            selectedHealthRuleIndex = Configuration.HealthTriggerRules.Count - 1;
-            Plugin.Configuration.Save();
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("删除选中规则##DeleteHealthRule"))
-        {
-            if (selectedHealthRuleIndex >= 0 && selectedHealthRuleIndex < Configuration.HealthTriggerRules.Count)
-            {
-                Configuration.HealthTriggerRules.RemoveAt(selectedHealthRuleIndex);
-                selectedHealthRuleIndex = -1;
-                Plugin.Configuration.Save();
-            }
-        }
-        ImGui.EndGroup();
-
-        ImGui.Separator();
-
-        // 左侧规则列表
-        ImGui.BeginChild("HealthRuleList", new Vector2(200, 0), true);
-        for (int i = 0; i < Configuration.HealthTriggerRules.Count; i++)
-        {
-            var rule = Configuration.HealthTriggerRules[i];
-            if (rule.IsEnabled)
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1)); // 绿色文本
-            }
-
-            if (ImGui.Selectable($"{i + 1}. {rule.Name}", selectedHealthRuleIndex == i))
-            {
-                selectedHealthRuleIndex = i;
-            }
-
-            if (rule.IsEnabled)
-            {
-                ImGui.PopStyleColor(); // 恢复默认颜色
-            }
-        }
-        ImGui.EndChild();
-
-        ImGui.SameLine();
-
-        // 右侧规则详细信息
-        ImGui.BeginChild("HealthRuleDetails", new Vector2(0, 0), true);
-        if (selectedHealthRuleIndex >= 0 && selectedHealthRuleIndex < Configuration.HealthTriggerRules.Count)
-        {
-            var selectedRule = Configuration.HealthTriggerRules[selectedHealthRuleIndex];
-
-            ImGui.Text($"编辑规则 {selectedHealthRuleIndex + 1}");
-            ImGui.Separator();
-
-            // 规则名称
-            string ruleName = selectedRule.Name ?? string.Empty;
-            if (ImGui.InputText("规则名称##HealthRuleName", ref ruleName, 100))
-            {
-                selectedRule.Name = ruleName;
-                Plugin.Configuration.Save();
-            }
-
-            // 启用规则
-            bool isEnabled = selectedRule.IsEnabled;
-            if (ImGui.Checkbox("启用规则##EnableHealthRule", ref isEnabled))
-            {
-                selectedRule.IsEnabled = isEnabled;
-                Plugin.Configuration.Save();
-            }
-
-            // 触发模式
-            int triggerMode = selectedRule.TriggerMode;
-            if (ImGui.Combo("触发模式", ref triggerMode, "血量减少触发\0回血触发\0"))
-            {
-                selectedRule.TriggerMode = triggerMode;
-                Plugin.Configuration.Save();
-            }
-
-            // 触发阈值
-            int triggerThreshold = selectedRule.TriggerThreshold;
-            if (ImGui.SliderInt("触发阈值(血量值)##HealthThreshold", ref triggerThreshold, 0, 10000))
-            {
-                selectedRule.TriggerThreshold = triggerThreshold;
-                Plugin.Configuration.Save();
-            }
-
-            // 血量区间
-            int minPercentage = selectedRule.MinPercentage;
-            if (ImGui.SliderInt("触发区间最小血量(%)##HealthMin", ref minPercentage, 0, 100))
-            {
-                selectedRule.MinPercentage = minPercentage;
-                Plugin.Configuration.Save();
-            }
-
-            int maxPercentage = selectedRule.MaxPercentage;
-            if (ImGui.SliderInt("触发区间最大血量(%)##HealthMax", ref maxPercentage, 0, 100))
-            {
-                selectedRule.MaxPercentage = maxPercentage;
-                Plugin.Configuration.Save();
-            }
-
-            // 开火强度
-            int fireStrength = selectedRule.FireStrength;
-            if (ImGui.SliderInt("一键开火强度##HealthFireStrength", ref fireStrength, 0, 40))
-            {
-                selectedRule.FireStrength = fireStrength;
-                Plugin.Configuration.Save();
-            }
-
-            // 开火时间
-            int fireTime = selectedRule.FireTime;
-            if (ImGui.SliderInt("一键开火时间(ms)##HealthFireTime", ref fireTime, 0, 30000))
-            {
-                selectedRule.FireTime = fireTime;
-                Plugin.Configuration.Save();
-            }
-
-            // 重置时间
-            bool overrideTime = selectedRule.OverrideTime;
-            if (ImGui.Checkbox("多次触发时，重置时间##HealthOverrideTime", ref overrideTime))
-            {
-                selectedRule.OverrideTime = overrideTime;
-                Plugin.Configuration.Save();
-            }
-
-            // 波形ID
-            string pulseId = selectedRule.PulseId ?? string.Empty;
-            if (ImGui.InputText("波形ID##HealthPulseId", ref pulseId, 64))
-            {
-                selectedRule.PulseId = pulseId;
-                Plugin.Configuration.Save();
-            }
-            // 保存更新
-            if (ImGui.Button("保存规则##SaveRule"))
-            {
-                Configuration.HealthTriggerRules[selectedHealthRuleIndex] = selectedRule;
-                HPTriggerRuleManager.SaveRules(Configuration.HealthTriggerRules);
-                Plugin.Log.Info($"规则 {selectedHealthRuleIndex + 1} 已更新");
-            }
-        }
-        else
-        {
-            ImGui.Text("请选择一个规则进行编辑");
-        }
-        ImGui.EndChild();
+        healthTriggerUI.Draw();
     }
 
-
-    private void OnFrameworkUpdateForHpChange(IFramework framework)
-    {
-        if (Plugin.ClientState.LocalPlayer == null || Configuration.HealthTriggerRules.Count == 0)
-            return;
-
-        var localPlayer = Plugin.ClientState.LocalPlayer;
-        int currentHp = (int)localPlayer.CurrentHp;
-        int currentHpPercentage = (int)((localPlayer.CurrentHp / (float)localPlayer.MaxHp) * 100);
-
-        foreach (var rule in Configuration.HealthTriggerRules)
-        {
-            if (!rule.IsEnabled)
-                continue;
-
-            // 检查触发区间
-            if (currentHpPercentage < rule.MinPercentage || currentHpPercentage > rule.MaxPercentage)
-                continue;
-
-            bool shouldTrigger = false;
-
-            // 根据触发模式决定逻辑
-            switch (rule.TriggerMode)
-            {
-                case 0: // 血量减少触发
-                    shouldTrigger = currentHp < previousHp &&
-                                    Math.Abs(previousHp - currentHp) >= rule.TriggerThreshold;
-                    break;
-
-                case 1: // 回血触发
-                    shouldTrigger = currentHp > previousHp &&
-                                    Math.Abs(previousHp - currentHp) >= rule.TriggerThreshold;
-                    break;
-            }
-
-            if (shouldTrigger)
-            {
-                TriggerFireAction(rule); // 根据规则参数触发开火
-            }
-        }
-
-        previousHp = (int)localPlayer.CurrentHp; // 更新上一次的血量
+    private void BuffIconSelector()
+    { 
+        buffIconSelector.Draw();
     }
-
-
 
     private void DrawAboutPage()
     {

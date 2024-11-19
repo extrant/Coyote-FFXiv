@@ -12,11 +12,13 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using System.Linq;
 using System.Runtime.InteropServices;
-using static Coyote.ChatWatcher;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Coyote.Utils;
+using ECommons.Logging;
+using Coyote.Gui;
 
 namespace Coyote;
 
@@ -31,6 +33,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] public static IGameInteropProvider Hook { get; private set; } = null!;
     [PluginService] public static IChatGui Chat { get; private set; } = null!;
+    [PluginService] public static IDataManager DataManager { get; private set; } = null!;
+
     private const string CommandName = "/coyote";
     private const string CommandName2 = "/coyotefire";
 
@@ -40,7 +44,6 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("SamplePlugin");
 
     private MainWindow MainWindow { get; init; }
-
     
     public Plugin()
     {
@@ -68,7 +71,10 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
         Configuration.chatTriggerRules = ChatTriggerRuleManager.LoadRules();
         Configuration.HealthTriggerRules = HPTriggerRuleManager.LoadRules();
+        
         Plugin.Log.Info("触发规则已加载。");
+
+
     }
 
     public void Dispose()

@@ -6,11 +6,10 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Newtonsoft.Json;
 using System.IO;
-using static Coyote.ChatWatcher;
 using System.Net.Http;
 using System.Text;
 
-namespace Coyote;
+namespace Coyote.Utils;
 
 public class ChatWatcher : IDisposable
 {
@@ -209,37 +208,5 @@ public class HPTriggerRuleManager
         }
     }
 }
-[Serializable]
-public class ChatTriggerRule
-{
-    public XivChatType ChatType { get; set; }
-    public string SenderName { get; set; } = string.Empty;
-    public string Keyword { get; set; } = string.Empty;
-    public bool MatchEntireMessage { get; set; }
-    public bool CheckSender { get; set; }
-    public bool IsEnabled { get; set; } = true; // 默认启用规则
 
-    // 新增字段
-    public int FireStrength { get; set; } = 0;
-    public int FireTime { get; set; } = 0;
-    public bool OverrideTime { get; set; } = false;
-    public string PulseId { get; set; } = string.Empty;
-}
-
-[Serializable]
-public class HealthTriggerRule
-{
-    public string Name { get; set; } = "新规则";
-    public bool IsEnabled { get; set; } = true;
-    public int TriggerMode { get; set; } = 1; // 1: 减少 2: 增加 3: 始终触发
-    public int TriggerThreshold { get; set; } = 100; // 触发阈值（血量变化值）
-    public int MinPercentage { get; set; } = 0; // 血量触发区间下限
-    public int MaxPercentage { get; set; } = 100; // 血量触发区间上限
-
-    // 开火相关配置
-    public int FireStrength { get; set; } = 10; // 开火强度
-    public int FireTime { get; set; } = 1000; // 开火时间，单位毫秒
-    public bool OverrideTime { get; set; } = false; // 是否重置时间
-    public string PulseId { get; set; } = string.Empty; // 波形ID
-}
 
