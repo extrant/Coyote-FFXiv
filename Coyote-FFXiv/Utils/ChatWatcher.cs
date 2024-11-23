@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using ECommons.DalamudServices;
 
 namespace Coyote.Utils;
 
@@ -142,7 +143,8 @@ public class ChatWatcher : IDisposable
 
 public class ChatTriggerRuleManager
 {
-    private const string ConfigFilePath = "chatTriggerRules.json";
+    private static string ConfigFilePath =>
+        Path.Combine(Plugin.PluginInterface.GetPluginConfigDirectory(), "chatTriggerRules.json");
 
     public static void SaveRules(List<ChatTriggerRule> rules)
     {
@@ -176,7 +178,8 @@ public class ChatTriggerRuleManager
 }
 public class HPTriggerRuleManager
 {
-    private const string ConfigFilePath = "hpTriggerRules.json";
+    private static string ConfigFilePath =>
+        Path.Combine(Plugin.PluginInterface.GetPluginConfigDirectory(), "hpTriggerRules.json");
 
     public static void SaveRules(List<HealthTriggerRule> rules)
     {
@@ -204,6 +207,7 @@ public class HPTriggerRuleManager
         catch (Exception ex)
         {
             Plugin.Log.Error($"加载规则失败: {ex.Message}");
+            
             return new List<HealthTriggerRule>();
         }
     }

@@ -62,6 +62,11 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "/coyote 打开UI"
         });
 
+        CommandManager.AddHandler(CommandName2, new CommandInfo(OnSFire)
+        {
+            HelpMessage = "/coyotefire <火力(int)> <时间(毫秒:int)> <是否重置计时(bool)> <波形ID(非必填:string)> \n示例: /coyotefire 10 10000 false"
+        });
+
         PluginInterface.UiBuilder.Draw += DrawUI;
 
         // This adds a button to the plugin installer entry of this plugin which allows
@@ -96,19 +101,19 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     private string fireResponse;
-    private async void OnSFire(string command, string args)
+    private async void OnSFire(string command, string arguments)
     {
-        Log.Debug($"{command}+{args}");
-        Plugin.Chat.Print($"{args[0]},{args[1]},{args[2]}");
-
+        //Plugin.Chat.Print($"A:{arguments}");
+        var args = arguments.Split(' ');
+        //Plugin.Chat.Print($"B:{args[0]} C:{args}{args[1]}{args[2]}");
         try
         {
             var requestContent = new
             {
-                strength = args[1],
-                time = args[0],
-                @override = true,
-                pulseId = ""
+                strength = args[0],
+                time = args[1],
+                @override = args[2],
+                pulseId = args.Length > 3 ? $"{args[3]}" : string.Empty
             };
 
             var jsonContent = new StringContent(

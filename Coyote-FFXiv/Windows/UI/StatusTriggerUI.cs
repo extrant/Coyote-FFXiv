@@ -16,7 +16,8 @@ using Coyote;
 namespace Coyote.Gui;
 public class BuffTriggerUI
 {
-    private readonly string ConfigFilePath = Path.Combine(Environment.CurrentDirectory, "BuffTriggerConfig.json");
+    private static string ConfigFilePath =>
+    Path.Combine(Plugin.PluginInterface.GetPluginConfigDirectory(), "BuffTriggerConfig.json");
     private List<BuffTriggerRule> BuffTriggerRules = new();
     private int selectedRuleIndex = -1;
     private string fireResponse;
