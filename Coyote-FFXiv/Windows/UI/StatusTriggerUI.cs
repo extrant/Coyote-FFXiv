@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Coyote.Utils;
 using System.Net.Http;
 using Coyote;
+using System.Xml.Linq;
 namespace Coyote.Gui;
 public class BuffTriggerUI
 {
@@ -204,8 +205,8 @@ public class BuffTriggerUI
         if (localPlayer == null || !isBuffTriggerRunning) return;
 
         var activeStatuses = localPlayer.StatusList
-            .Where(s => s.GameData != null && !string.IsNullOrEmpty(s.GameData.Name.ExtractText()))
-            .ToDictionary(s => s.GameData.Name.ExtractText(), s => s.RemainingTime);
+            .Where(s => s.GameData.ValueNullable != null && !string.IsNullOrEmpty(s.GameData.ValueNullable?.Name.ExtractText()))
+            .ToDictionary(s => s.GameData.ValueNullable ?.Name.ExtractText(), s => s.RemainingTime);
 
         
 

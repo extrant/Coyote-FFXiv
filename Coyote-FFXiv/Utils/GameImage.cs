@@ -1,25 +1,21 @@
-using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using Lumina.Excel;
-using System;
+using static Dalamud.Plugin.Services.ITextureProvider;
 namespace Coyote.Utils
 {
     public class TexturesHelper
     {
-        public static IDalamudTextureWrap? GetTexture<T>(uint rowId, uint stackCount = 0, bool hdIcon = true) where T : ExcelRow
+        public static IDalamudTextureWrap? GetTexture<T>(uint rowId, uint stackCount = 0, bool hdIcon = true) where T : struct, IExcelRow<T>
         {
-            var sheet = Plugin.DataManager.GetExcelSheet<T>();
+            ExcelSheet<T> sheet = Plugin.DataManager.GetExcelSheet<T>();
             return sheet == null ? null : GetTexture<T>(sheet.GetRow(rowId), stackCount, hdIcon);
         }
 
-        public static IDalamudTextureWrap? GetTexture<T>(dynamic? row, uint stackCount = 0, bool hdIcon = true) where T : ExcelRow
+        public static IDalamudTextureWrap? GetTexture<T>(dynamic row, uint stackCount = 0, bool hdIcon = true) where T : struct, IExcelRow<T>
         {
-            if (row == null)
-            {
-                return null;
-            }
-
-            var iconId = row.Icon;
+            dynamic iconId = row.Icon;
             return GetTextureFromIconId(iconId, stackCount, hdIcon);
         }
 

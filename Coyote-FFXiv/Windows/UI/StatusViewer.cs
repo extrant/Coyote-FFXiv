@@ -7,7 +7,7 @@ using ECommons.ExcelServices;
 using ECommons.ImGuiMethods;
 using ECommons.SimpleGui;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using ECommons;
 using System.Linq;
@@ -29,7 +29,6 @@ public class BuffIconSelector
     private bool Fullscreen = false;
     public uint SelectedIconID; // 当前选中的 IconID
     public MyStatus Delegate;  // 当前选中的状态对象
-
     private Configuration Configuration; // 配置对象
     private Plugin Plugin; // 插件实例
 
@@ -62,7 +61,7 @@ public class BuffIconSelector
                 {
                     if (status == null || status.StatusId == 0) continue;
 
-                    ImGui.Text($"Status Name: {status.GameData.Name}");
+                    ImGui.Text($"Status Name: {status.GameData.ValueNullable.ToString}");
                 }
             }
             else
@@ -109,11 +108,11 @@ public class BuffIconSelector
 
         if (ImGui.BeginChild("child"))
         {
-            if (ImGui.CollapsingHeader("增益状态效果"))
+            if (ImGui.CollapsingHeader("强化状态效果"))
             {
                 DrawIconTable(statusInfos.Where(x => x.Type == StatusType.强化状态).OrderBy(x => x.IconID));
             }
-            if (ImGui.CollapsingHeader("减益状态效果"))
+            if (ImGui.CollapsingHeader("弱化状态效果"))
             {
                 DrawIconTable(statusInfos.Where(x => x.Type == StatusType.弱化状态).OrderBy(x => x.IconID));
             }
@@ -125,7 +124,7 @@ public class BuffIconSelector
         ImGui.EndChild();
     }
 
-    private void DrawIconTable(System.Collections.Generic.IEnumerable<IconInfo> infos)
+    private void DrawIconTable(IEnumerable<IconInfo> infos)
     {
         infos = infos
             .Where(x => Filter == "" || (x.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase) || x.IconID.ToString().Contains(Filter)))
@@ -201,8 +200,7 @@ public class BuffIconSelector
         }
         else
         {
-            var data = Plugin.DataManager.GetExcelSheet<Status>().FirstOrDefault(x => x.Icon == iconID);
-            if (data == null)
+            if (!Plugin.DataManager.GetExcelSheet<Status>().TryGetFirst(x => x.Icon == iconID, out var data))
             {
                 IconInfoCache[iconID] = null;
                 return null;

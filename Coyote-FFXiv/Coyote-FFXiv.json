@@ -8,6 +8,6 @@
     "IsTestingExclusive": false,
     "IconUrl": "https://raw.githubusercontent.com/extrant/SIREN2/main/images/Coyote.png",
     "RepoUrl": "https://github.com/extrant/Coyote-FFXiv",
-    "AssemblyVersion": "0.24.11.19",
-    "DalamudApiLevel": "10"
+    "AssemblyVersion": "0.25.02.26",
+    "DalamudApiLevel": "11"
 }
