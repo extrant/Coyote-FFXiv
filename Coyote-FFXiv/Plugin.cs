@@ -43,6 +43,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new("SamplePlugin");
 
+    internal EmoteTool EmoteTool { get; init; }
     private MainWindow MainWindow { get; init; }
     
     public Plugin()
@@ -56,6 +57,7 @@ public sealed class Plugin : IDalamudPlugin
 
         WindowSystem.AddWindow(MainWindow);
 
+        EmoteTool = new EmoteTool(this);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {

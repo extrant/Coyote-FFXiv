@@ -147,7 +147,14 @@ public class MainWindow : Window, IDisposable
             ImGui.EndTabItem();
         }
 
+        if (ImGui.BeginTabItem("小工具"))
+        {
+            Plugin.EmoteTool.DrawSettings();
+            ImGui.EndTabItem();
+        }
         ImGui.EndTabBar();
+
+        
     }
     //主页绘制
     private void DrawHomePage()
@@ -228,12 +235,17 @@ public class MainWindow : Window, IDisposable
         ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
         ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(1.0f, 0.5f, 0.5f, 1.0f)); // Lighter red when hovered
         ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.8f, 0.0f, 0.0f, 1.0f)); // Darker red when active
+        if (ImGui.CollapsingHeader("2025/02/26 更新7.1 增加随地睡大街功能"))
+        {
+            ImGui.Text("增加随地睡大街功能。");
+            ImGui.Text("插件更新到7.1。");
+        }
+        ImGui.PopStyleColor(3);
         if (ImGui.CollapsingHeader("2024/11/23 更新文本指令，修复配置文件存储位置(重要!) 感谢AtmoOmen(啵啵)"))
         {
             ImGui.Text("文本指令已经添加，可以通过ACT触发器自定义高级玩法。或由其他插件通过指令触发。");
             ImGui.Text("本次更新会导致配置文件丢失，如果需要恢复的话：\n原来的配置文件位于你的游戏exe(ffxiv_dx11.exe)路径下，文件名称为\n BuffTriggerConfig.json\n chatTriggerRules.json\n hpTriggerRules.json\n然后复制到 AppData\\Roaming\\XIVLauncherCN\\pluginConfigs\\Coyote-FFXiv\\ 位置即可。");
         }
-        ImGui.PopStyleColor(3);
         if (ImGui.CollapsingHeader("2024/11/18 增加状态触发"))
         {
             ImGui.Text("请注意优先级顺序。");
