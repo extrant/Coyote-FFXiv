@@ -1,18 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Newtonsoft.Json;
-using System.IO;
-using System.Net.Http;
-using System.Text;
-using ECommons.DalamudServices;
 using Dalamud.Hooking;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using System.Runtime.InteropServices;
+using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Coyote.Utils;
 
@@ -50,58 +51,50 @@ public class ChatWatcher : IDisposable
     }
 
 
-    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    private void OnChatMessage(IHandleableChatMessage message)
     {
+        var type = message.LogKind;           // 原来是 type 参数
+        var sender = message.Sender;          // SeString
+        var msg = message.Message;         // SeString
 
-        Plugin.Log.Debug($"OnChatMessage {type}, {sender}, {message}, {isHandled}");
-
+        Plugin.Log.Debug($"OnChatMessage {type}, {sender}, {msg}, Handled={message.IsHandled}");
         foreach (var rule in _configuration.chatTriggerRules)
         {
-            // 检查规则是否启用
-            if (!rule.IsEnabled)
-            {
-                continue;
-            }
+            if (!rule.IsEnabled) continue;
+            if (rule.ChatType != type) continue;
 
-            // 检查聊天类型是否匹配
-            if (rule.ChatType != type)
-            {
-                continue;
-            }
-
-            // 检查发送者是否匹配
+            // 检查发送者
             if (rule.CheckSender && !sender.TextValue.Equals(rule.SenderName, StringComparison.OrdinalIgnoreCase))
-            {
                 continue;
-            }
 
-            // 检查消息内容是否匹配
+            // 检查消息内容
+            var messageText = msg.TextValue;
             if (rule.MatchEntireMessage)
             {
-                if (!message.TextValue.Equals(rule.Keyword, StringComparison.OrdinalIgnoreCase))
-                {
+                if (!messageText.Equals(rule.Keyword, StringComparison.OrdinalIgnoreCase))
                     continue;
-                }
             }
             else
             {
-                if (!message.TextValue.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
-                {
+                if (!messageText.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
                     continue;
-                }
             }
 
-            // 如果匹配，则处理
-            Plugin.Chat.Print($"触发规则：类型 {rule.ChatType}, 发送者 {sender}, 消息 {message.TextValue}");
+            Plugin.Chat.Print($"触发规则：类型 {rule.ChatType}, 发送者 {sender}, 消息 {messageText}");
 
-            // 调用开火逻辑
             TriggerFireAction(rule);
+
+            // 如果需要阻止原消息显示，可以调用：
+            // message.PreventOriginal();
         }
     }
 
-    private void OnCheckMessageHandled(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    private void OnCheckMessageHandled(IHandleableChatMessage message)
     {
-        Plugin.Log.Debug($"OnCheckMessageHandled {type}, {sender}, {message}, {isHandled}");
+        var type = message.LogKind;
+        Plugin.Log.Debug($"OnCheckMessageHandled {type}, {message.Sender}, {message.Message}, Handled={message.IsHandled}");
+
+        // 如果你在这里也需要做过滤，可以同样处理 message
     }
 
 

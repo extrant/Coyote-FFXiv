@@ -42,10 +42,10 @@ public class HealthWatcher
 
     private void OnFrameworkUpdateForHpChange(IFramework framework)
     {
-        if (Plugin.ClientState.LocalPlayer == null || _configuration.HealthTriggerRules.Count == 0)
+        if (Plugin.ObjectTable.LocalPlayer == null || _configuration.HealthTriggerRules.Count == 0)
             return;
 
-        var localPlayer = Plugin.ClientState.LocalPlayer;
+        var localPlayer = Plugin.ObjectTable.LocalPlayer;
         int currentHp = (int)localPlayer.CurrentHp;
         int currentHpPercentage = (int)((localPlayer.CurrentHp / (float)localPlayer.MaxHp) * 100);
 

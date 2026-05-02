@@ -201,7 +201,7 @@ public class BuffTriggerUI
     private readonly Dictionary<string, float> BuffLastTriggerTime = new(); // 用于记录 Buff 上次触发的整数秒时间
     private void OnFrameworkUpdateForBuff(IFramework framework)
     {
-        var localPlayer = Plugin.ClientState.LocalPlayer;
+        var localPlayer = Plugin.ObjectTable.LocalPlayer;
         if (localPlayer == null || !isBuffTriggerRunning) return;
 
         var activeStatuses = localPlayer.StatusList

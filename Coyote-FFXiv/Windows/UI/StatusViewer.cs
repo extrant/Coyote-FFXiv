@@ -51,9 +51,9 @@ public class BuffIconSelector
 
     public void Draw()
     {
-        if (Plugin.ClientState.LocalPlayer != null)
+        if (Plugin.ObjectTable.LocalPlayer != null)
         {
-            var statusList = Plugin.ClientState.LocalPlayer.StatusList;
+            var statusList = Plugin.ObjectTable.LocalPlayer.StatusList;
 
             if (statusList != null && statusList.Count() > 0)
             {
